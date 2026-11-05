@@ -1,0 +1,79 @@
+# Produção no VPS: banco + API + Caddy (HTTPS automático) + backup diário.
+# Uso: cp .env.example .env  (preencha)  &&  docker compose up -d --build
+name: descartaai
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: descartaai
+      POSTGRES_USER: descartaai
+      POSTGRES_PASSWORD: ${DB_SENHA:?defina DB_SENHA no .env}
+    volumes:
+      - dados:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U descartaai -d descartaai"]
+      interval: 10s
+      retries: 6
+    networks: [interna]
+    # Sem "ports": o banco não fica acessível pela internet.
+
+  api:
+    build: ../api
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      ConnectionStrings__Default: Host=db;Port=5432;Database=descartaai;Username=descartaai;Password=${DB_SENHA};Gss Encryption Mode=Disable
+      Cors__Origens: ${SITE_ORIGEM:?defina SITE_ORIGEM no .env}
+      Banco__MigrarAoIniciar: "true"
+      Swagger__Habilitado: "false"
+      Gemini__ChaveApi: ${GEMINI_CHAVE:-}
+      Gemini__Modelo: ${GEMINI_MODELO:-gemini-2.5-flash}
+      Limite__RequisicoesPorMinuto: "120"
+      Limite__IdentificacoesPorMinuto: "10"
+      # Só confia no X-Forwarded-For vindo do Caddy (IP fixo abaixo).
+      Proxy__Confiaveis__0: 172.30.0.10
+    networks: [interna]
+
+  caddy:
+    image: caddy:2.10
+    restart: unless-stopped
+    depends_on: [api]
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      API_DOMINIO: ${API_DOMINIO:?defina API_DOMINIO no .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-dados:/data
+      - caddy-config:/config
+    networks:
+      interna: { ipv4_address: 172.30.0.10 }
+
+  backup:
+    image: postgis/postgis:16-3.4
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      PGPASSWORD: ${DB_SENHA}
+    volumes:
+      - ./backups:/backups
+      - ./backup.sh:/backup.sh:ro
+    entrypoint: ["/bin/sh", "/backup.sh"]
+    networks: [interna]
+
+volumes:
+  dados:
+  caddy-dados:
+  caddy-config:
+
+networks:
+  interna:
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
