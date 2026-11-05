@@ -11,7 +11,9 @@ Projeto de extensão (UNIP, Análise e Desenvolvimento de Sistemas), desenvolvid
 - **Páginas institucionais**: Sobre, Política de Privacidade (LGPD) e Termos de Uso.
 - Interface acessível: navegação por teclado, foco visível, rótulos em todos os campos, áreas de toque de 44 px e suporte a leitores de tela.
 
-Em desenvolvimento: identificação de resíduos por foto e cadastro de pontos por parceiros.
+- **Identificação por foto (app)**: a foto é reduzida, enviada à API e analisada pelo Google Gemini; o usuário confirma a sugestão antes de ver o destino. A foto não é guardada.
+
+Em desenvolvimento: cadastro de pontos por parceiros.
 
 ## Estrutura
 
@@ -19,7 +21,7 @@ Em desenvolvimento: identificação de resíduos por foto e cadastro de pontos p
 |---|---|
 | `api/` | API REST em ASP.NET Core (.NET 10), EF Core, PostgreSQL + PostGIS |
 | `web/` | Site em React + Vite + TypeScript, mapa com Leaflet e OpenStreetMap |
-| `mobile/` | App em React Native + Expo: guia, mapa e pontos próximos |
+| `mobile/` | App em React Native + Expo: guia, mapa, pontos próximos e identificação por foto |
 
 ## Como rodar localmente
 
@@ -53,6 +55,24 @@ npx expo start          # abra no Expo Go ou no emulador Android
 
 No celular físico, `localhost` é o próprio aparelho: use o IP do computador na rede e rode a API com `dotnet run --urls http://0.0.0.0:5158`.
 
+A identificação por foto precisa de uma chave do [Google AI Studio](https://aistudio.google.com/apikey) na API. Sem ela, a tela de foto avisa que o serviço está indisponível:
+
+```bash
+cd api/DescartaAi.Api
+dotnet user-secrets set "Gemini:ChaveApi" "SUA-CHAVE"
+```
+
+APK para demonstração: `npx eas-cli build -p android --profile preview` (requer conta Expo). O endereço da API usado no APK fica em `mobile/eas.json` e precisa ser HTTPS.
+
+### Testes do app
+
+```bash
+cd mobile
+npm test
+```
+
+São 27 testes (Jest + Testing Library): cliente da API, guia (busca com espera de digitação, filtro por categoria, lista vazia, erro com "Tentar de novo") e identificação por foto (aviso de privacidade, permissão negada, redução da imagem, sugestões, confirmação e erros 400/413/429/503).
+
 ### Variáveis do site (`web/.env`)
 
 | Variável | Descrição |
@@ -68,9 +88,10 @@ cd api
 dotnet test
 ```
 
-São 40 testes, em `api/DescartaAi.Api.Tests`:
+São 56 testes, em `api/DescartaAi.Api.Tests`:
 
-- **Unidade:** validação da busca por proximidade (coordenadas e raio).
+- **Unidade:** validação da busca por proximidade (coordenadas e raio) e reconhecimento do formato da imagem pelo conteúdo.
+- **Identificação por foto:** com a IA substituída por um classificador falso, cobrem a ordenação por confiança, o descarte de ids inventados, os limites de 3 sugestões e 5 MB (413), arquivo que não é imagem (400), IA fora do ar (503), limite de 10 fotos por minuto (429) e a confirmação/correção.
 - **Integração:** sobem a API completa contra um PostgreSQL + PostGIS real, criado automaticamente em um contêiner descartável ([Testcontainers](https://dotnet.testcontainers.org)). Cobrem a busca sem acento e por sinônimos, a ordenação por distância, o filtro por material e raio, a regra de que pontos pendentes não são públicos e os erros 400/404.
 - **Segurança:** cabeçalhos, Swagger desligado em produção, CORS só para a origem configurada, limite de requisições (429) e curingas do LIKE escapados.
 

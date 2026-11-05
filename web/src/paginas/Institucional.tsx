@@ -91,6 +91,11 @@ export function Privacidade() {
             <td>Execução do serviço solicitado (art. 7º, V)</td>
           </tr>
           <tr>
+            <td>Foto do item, só no aplicativo e quando você usa “Tirar foto do item”</td>
+            <td>Sugerir que resíduo é e como descartá-lo</td>
+            <td>Execução do serviço solicitado (art. 7º, V)</td>
+          </tr>
+          <tr>
             <td>Dados técnicos de acesso (endereço IP, data e hora, endereço da página acessada)</td>
             <td>Segurança e funcionamento do servidor</td>
             <td>Legítimo interesse (art. 7º, IX) e Marco Civil da Internet (art. 15)</td>
@@ -106,6 +111,14 @@ export function Privacidade() {
         nas configurações do navegador; o site continua funcionando a partir do centro da cidade.
       </p>
 
+      <h2>3.1. O que acontece com a foto (aplicativo)</h2>
+      <p>
+        Antes do envio, o aplicativo reduz a foto e remove os metadados (como o local onde foi tirada). Ela é
+        repassada ao serviço de inteligência artificial apenas para sugerir o tipo de resíduo e não é gravada
+        no nosso servidor. Guardamos só o resultado (material sugerido, confiança e o que você confirmou), sem
+        ligação com você, para medir a taxa de acerto. Evite fotografar pessoas, documentos ou placas de carro.
+      </p>
+
       <h2>4. Serviços de terceiros</h2>
       <ul>
         <li>
@@ -117,8 +130,12 @@ export function Privacidade() {
           <strong>Google Maps</strong>: só é acionado quando você clica em “Como chegar”. A partir daí vale a{" "}
           <a href="https://policies.google.com/privacy" target="_blank" rel="noreferrer">política de privacidade do Google</a>.
         </li>
+        <li>
+          <strong>Google Gemini</strong>: recebe a foto enviada pelo aplicativo para identificar o resíduo. Veja os{" "}
+          <a href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noreferrer">termos da API Gemini</a>.
+        </li>
       </ul>
-      <p>Não vendemos nem compartilhamos dados pessoais com outras empresas.</p>
+      <p>Não vendemos dados pessoais nem os compartilhamos além dos serviços acima, que são necessários para o funcionamento.</p>
 
       <h2>5. Por quanto tempo guardamos</h2>
       <p>
@@ -142,8 +159,8 @@ export function Privacidade() {
 
       <h2>8. Mudanças nesta política</h2>
       <p>
-        Se passarmos a tratar novos dados (por exemplo, fotos para identificar resíduos ou cadastro de
-        parceiros), esta página será atualizada antes, com a data de revisão no topo.
+        Se passarmos a tratar novos dados (por exemplo, cadastro de parceiros), esta página será atualizada
+        antes, com a data de revisão no topo.
       </p>
     </Pagina>
   );
