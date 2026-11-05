@@ -18,6 +18,7 @@ builder.Services.AddScoped<IIdentificacoesServico, IdentificacoesServico>();
 builder.Services.AddHttpClient<IClassificadorDeImagem, GeminiClassificador>(c => c.Timeout = TimeSpan.FromSeconds(30));
 
 builder.Services.AddSeguranca(builder.Configuration);
+builder.Services.AddHealthChecks().AddCheck<SaudeDoBanco>("banco");
 builder.Services.AddExceptionHandler<ErroDeRequisicaoHandler>();
 builder.Services.AddProblemDetails();
 
@@ -47,6 +48,9 @@ if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Banco:M
     await db.Database.MigrateAsync();
     await CargaInicial.ExecutarAsync(db);
 }
+
+// Monitoramento (UptimeRobot, healthcheck do Docker): responde só "Healthy"/"Unhealthy", sem detalhes.
+app.MapHealthChecks("/health").DisableRateLimiting();
 
 app.MapGroup("/v1")
     .MapMateriais()
