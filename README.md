@@ -11,7 +11,7 @@ Projeto de extensão (UNIP, Análise e Desenvolvimento de Sistemas), desenvolvid
 - **Páginas institucionais**: Sobre, Política de Privacidade (LGPD) e Termos de Uso.
 - Interface acessível: navegação por teclado, foco visível, rótulos em todos os campos, áreas de toque de 44 px e suporte a leitores de tela.
 
-Em desenvolvimento: app mobile, identificação de resíduos por foto e cadastro de pontos por parceiros.
+Em desenvolvimento: identificação de resíduos por foto e cadastro de pontos por parceiros.
 
 ## Estrutura
 
@@ -19,7 +19,7 @@ Em desenvolvimento: app mobile, identificação de resíduos por foto e cadastro
 |---|---|
 | `api/` | API REST em ASP.NET Core (.NET 10), EF Core, PostgreSQL + PostGIS |
 | `web/` | Site em React + Vite + TypeScript, mapa com Leaflet e OpenStreetMap |
-| `mobile/` | App em React Native + Expo (próxima fase) |
+| `mobile/` | App em React Native + Expo: guia, mapa e pontos próximos |
 
 ## Como rodar localmente
 
@@ -41,6 +41,17 @@ npm install
 npm run dev
 # http://localhost:5173
 ```
+
+### App mobile
+
+```bash
+cd mobile
+cp .env.example .env    # EXPO_PUBLIC_API_URL: endereço da API visto pelo celular
+npm install
+npx expo start          # abra no Expo Go ou no emulador Android
+```
+
+No celular físico, `localhost` é o próprio aparelho: use o IP do computador na rede e rode a API com `dotnet run --urls http://0.0.0.0:5158`.
 
 ### Variáveis do site (`web/.env`)
 

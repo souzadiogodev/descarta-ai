@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "Descarta Aí",
+    "slug": "descarta-ai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "br.com.descartaai"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "br.com.descartaai"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "scheme": "descartaai",
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "O Descarta Aí usa sua localização apenas para mostrar os pontos de coleta mais próximos. Ela não é armazenada."
+        }
+      ]
+    ]
+  }
+}
