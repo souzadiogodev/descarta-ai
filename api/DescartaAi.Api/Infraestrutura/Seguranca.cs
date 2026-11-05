@@ -5,6 +5,9 @@ namespace DescartaAi.Api.Infraestrutura;
 
 public static class Seguranca
 {
+    /// <summary>Limite mais apertado para a identificação por foto, que custa uma chamada à IA.</summary>
+    public const string PoliticaIdentificacao = "identificacao";
+
     /// <summary>CORS restrito, limite de requisições por IP e leitura do IP real atrás de proxy.</summary>
     public static IServiceCollection AddSeguranca(this IServiceCollection services, IConfiguration config)
     {
@@ -21,6 +24,12 @@ public static class Seguranca
                 RateLimitPartition.GetFixedWindowLimiter(
                     ctx.Connection.RemoteIpAddress?.ToString() ?? "desconhecido",
                     _ => new FixedWindowRateLimiterOptions { PermitLimit = porMinuto, Window = TimeSpan.FromMinutes(1) }));
+
+            var identificacoesPorMinuto = config.GetValue("Limite:IdentificacoesPorMinuto", 10);
+            o.AddPolicy(PoliticaIdentificacao, ctx =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    ctx.Connection.RemoteIpAddress?.ToString() ?? "desconhecido",
+                    _ => new FixedWindowRateLimiterOptions { PermitLimit = identificacoesPorMinuto, Window = TimeSpan.FromMinutes(1) }));
         });
 
         // Em produção a API fica atrás de um proxy (nginx, Cloudflare); sem isto, todo mundo

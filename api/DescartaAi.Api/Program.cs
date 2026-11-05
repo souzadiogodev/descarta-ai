@@ -1,6 +1,7 @@
 using DescartaAi.Api.Dados;
 using DescartaAi.Api.Dados.Carga;
 using DescartaAi.Api.Infraestrutura;
+using DescartaAi.Api.Modulos.Identificacoes;
 using DescartaAi.Api.Modulos.Materiais;
 using DescartaAi.Api.Modulos.Pontos;
 using Microsoft.EntityFrameworkCore;
@@ -13,6 +14,8 @@ builder.Services.AddDbContext<AppDbContext>(o =>
 
 builder.Services.AddScoped<IMateriaisServico, MateriaisServico>();
 builder.Services.AddScoped<IPontosServico, PontosServico>();
+builder.Services.AddScoped<IIdentificacoesServico, IdentificacoesServico>();
+builder.Services.AddHttpClient<IClassificadorDeImagem, GeminiClassificador>(c => c.Timeout = TimeSpan.FromSeconds(30));
 
 builder.Services.AddSeguranca(builder.Configuration);
 builder.Services.AddExceptionHandler<ErroDeRequisicaoHandler>();
@@ -47,7 +50,8 @@ if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Banco:M
 
 app.MapGroup("/v1")
     .MapMateriais()
-    .MapPontos();
+    .MapPontos()
+    .MapIdentificacoes();
 
 app.Run();
 
