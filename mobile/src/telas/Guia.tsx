@@ -18,7 +18,7 @@ export default function Guia({ navigation, route }: Props) {
 
   useEffect(() => {
     if (route.params?.busca !== undefined) setTexto(route.params.busca);
-  }, [route.params?.busca]);
+  }, [route.params]); // novo a cada navegação: repete a busca mesmo com o mesmo texto
 
   // Espera o usuário parar de digitar antes de consultar.
   useEffect(() => {

@@ -30,6 +30,14 @@
         {
           "locationWhenInUsePermission": "O Descarta Aí usa sua localização apenas para mostrar os pontos de coleta mais próximos. Ela não é armazenada."
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "O Descarta Aí usa a câmera para você fotografar o item e descobrir como descartá-lo.",
+          "photosPermission": "O Descarta Aí acessa a foto que você escolher para identificar o item.",
+          "microphonePermission": false
+        }
       ]
     ]
   }

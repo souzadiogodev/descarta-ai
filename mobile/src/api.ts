@@ -12,7 +12,7 @@ export type PontoProximo = {
 
 async function get<T>(caminho: string, sinal?: AbortSignal): Promise<T> {
   const resposta = await fetch(BASE + caminho, { signal: sinal });
-  if (!resposta.ok) throw new Error(`Erro ${resposta.status} ao consultar a API`);
+  if (!resposta.ok) throw new ErroApi(resposta.status);
   return resposta.json();
 }
 
@@ -25,7 +25,35 @@ export const consulta = (valores: Record<string, string | number | undefined>) =
   return partes.length ? `?${partes.join("&")}` : "";
 };
 
+export type Sugestao = { materialId: number; nome: string; categoria: string; perigoso: boolean; confianca: number };
+export type Identificacao = { id: number; sugestoes: Sugestao[] };
+
+/** Erro com o código HTTP, para a tela explicar 413, 429 e 503 ao usuário. */
+export class ErroApi extends Error {
+  constructor(public status: number) { super(`Erro ${status} ao consultar a API`); }
+}
+
+async function enviar(metodo: "POST" | "PATCH", caminho: string, corpo: FormData | object, sinal?: AbortSignal) {
+  const ehForm = corpo instanceof FormData;
+  const resposta = await fetch(BASE + caminho, {
+    method: metodo,
+    signal: sinal,
+    headers: ehForm ? undefined : { "Content-Type": "application/json" },
+    body: ehForm ? corpo : JSON.stringify(corpo),
+  });
+  if (!resposta.ok) throw new ErroApi(resposta.status);
+  return resposta;
+}
+
 export const api = {
+  identificar: async (foto: { uri: string; tipo: string; nome: string }, sinal?: AbortSignal) => {
+    const form = new FormData();
+    // React Native aceita { uri, type, name } como arquivo no FormData.
+    form.append("foto", { uri: foto.uri, type: foto.tipo, name: foto.nome } as unknown as Blob);
+    return (await enviar("POST", "/identificacoes", form, sinal)).json() as Promise<Identificacao>;
+  },
+  confirmar: (id: number, materialId: number) =>
+    enviar("PATCH", `/identificacoes/${id}`, { materialId }).then(() => undefined),
   categorias: (sinal?: AbortSignal) => get<Categoria[]>("/categorias", sinal),
   materiais: (filtro: { busca?: string; categoriaId?: number } = {}, sinal?: AbortSignal) =>
     get<MaterialResumo[]>(`/materiais${consulta(filtro)}`, sinal),

@@ -22,7 +22,9 @@ export default function Mapa({ navigation, route }: Props) {
   const [materialId, setMaterialId] = useState(route.params?.materialId);
   const mapa = useRef<MapView>(null);
 
-  useEffect(() => { setMaterialId(route.params?.materialId); }, [route.params?.materialId]);
+  // Depende do objeto params (novo a cada navegação): reaplica o filtro mesmo que o id seja o mesmo
+  // de antes, como quando o usuário limpou o filtro e voltou a tocar "Onde descartar".
+  useEffect(() => { setMaterialId(route.params?.materialId); }, [route.params]);
 
   useEffect(() => {
     (async () => {

@@ -1,11 +1,15 @@
 import { useState } from "react";
 import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import type { CompositeScreenProps } from "@react-navigation/native";
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Botao } from "../componentes";
-import type { Abas } from "../navegacao";
+import type { Abas, Rotas } from "../navegacao";
 import { cor, raio, toqueMinimo } from "../tema";
 
-export default function Inicio({ navigation }: BottomTabScreenProps<Abas, "Inicio">) {
+type Props = CompositeScreenProps<BottomTabScreenProps<Abas, "Inicio">, NativeStackScreenProps<Rotas>>;
+
+export default function Inicio({ navigation }: Props) {
   const [busca, setBusca] = useState("");
   const buscar = () => navigation.navigate("Guia", { busca: busca.trim() });
 
@@ -27,6 +31,7 @@ export default function Inicio({ navigation }: BottomTabScreenProps<Abas, "Inici
         />
         <Botao titulo="Buscar" aoTocar={buscar} />
       </View>
+      <Botao titulo="Tirar foto do item" aoTocar={() => navigation.navigate("Foto")} />
       <Botao titulo="Pontos de coleta perto de mim" aoTocar={() => navigation.navigate("Mapa")} />
       <Botao titulo="Ver guia completo" secundario aoTocar={() => navigation.navigate("Guia")} />
     </ScrollView>

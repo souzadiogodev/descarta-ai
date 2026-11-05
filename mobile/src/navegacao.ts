@@ -10,4 +10,5 @@ export type Rotas = {
   Abas: NavigatorScreenParams<Abas> | undefined;
   Material: { id: number; nome: string };
   Ponto: { ponto: PontoProximo };
+  Foto: undefined;
 };
