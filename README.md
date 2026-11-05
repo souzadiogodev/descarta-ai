@@ -172,3 +172,7 @@ Os pontos de coleta iniciais vêm do OpenStreetMap (© colaboradores do OpenStre
 ## Licença
 
 Veja [LICENSE](LICENSE).
+
+## Publicação
+
+Site no Cloudflare Pages e API + banco em um VPS com Docker (Caddy para HTTPS, backup diário). O passo a passo está em [`deploy/README.md`](deploy/README.md). O GitHub Actions (`.github/workflows/`) roda os testes da API, do site e do app a cada push e publica ao mesclar na `main`.

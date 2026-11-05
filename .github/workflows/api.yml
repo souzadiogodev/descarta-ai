@@ -1,0 +1,45 @@
+name: API
+
+on:
+  push:
+    branches: [main, dev]
+    paths: ["api/**", "deploy/**", ".github/workflows/api.yml"]
+  pull_request:
+    paths: ["api/**", "deploy/**", ".github/workflows/api.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      # Os testes de integração sobem PostgreSQL + PostGIS via Testcontainers (Docker já vem no runner).
+      - run: dotnet test api --configuration Release
+
+  deploy:
+    needs: testes
+    # Só publica a main, e só depois que os segredos do servidor forem configurados (ver deploy/README.md).
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.DEPLOY_HABILITADO == 'true'
+    runs-on: ubuntu-latest
+    concurrency: deploy-api
+    environment: producao
+    steps:
+      - name: Atualiza o servidor por SSH
+        env:
+          CHAVE: ${{ secrets.VPS_CHAVE_SSH }}
+          HOST: ${{ secrets.VPS_HOST }}
+          USUARIO: ${{ secrets.VPS_USUARIO }}
+          HOST_CONHECIDO: ${{ secrets.VPS_HOST_CONHECIDO }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$CHAVE" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          # Impressão digital do servidor fixada: evita conectar num servidor falso.
+          printf '%s\n' "$HOST_CONHECIDO" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_deploy "$USUARIO@$HOST" 'sh ~/descarta-ai/deploy/atualizar.sh'
