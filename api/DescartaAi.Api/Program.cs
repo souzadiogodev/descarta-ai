@@ -1,9 +1,16 @@
 using DescartaAi.Api.Dados;
 using DescartaAi.Api.Dados.Carga;
 using DescartaAi.Api.Infraestrutura;
+using DescartaAi.Api.Dominio;
+using DescartaAi.Api.Modulos.Admin;
+using DescartaAi.Api.Modulos.Contas;
 using DescartaAi.Api.Modulos.Identificacoes;
+using DescartaAi.Api.Modulos.Localizacao;
+using DescartaAi.Api.Modulos.Parceiros;
 using DescartaAi.Api.Modulos.Materiais;
 using DescartaAi.Api.Modulos.Pontos;
+using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,7 +24,11 @@ builder.Services.AddScoped<IPontosServico, PontosServico>();
 builder.Services.AddScoped<IIdentificacoesServico, IdentificacoesServico>();
 builder.Services.AddHttpClient<IClassificadorDeImagem, GeminiClassificador>(c => c.Timeout = TimeSpan.FromSeconds(30));
 
+builder.Services.AddHttpClient<IGeocodificador, NominatimGeocodificador>(c => c.Timeout = TimeSpan.FromSeconds(10));
+
 builder.Services.AddSeguranca(builder.Configuration);
+builder.Services.AddAutenticacao(builder.Configuration);
+builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddHealthChecks().AddCheck<SaudeDoBanco>("banco");
 builder.Services.AddExceptionHandler<ErroDeRequisicaoHandler>();
 builder.Services.AddProblemDetails();
@@ -47,6 +58,8 @@ if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Banco:M
     var db = escopo.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.MigrateAsync();
     await CargaInicial.ExecutarAsync(db);
+    await Autenticacao.GarantirAdminInicialAsync(db, app.Configuration,
+        escopo.ServiceProvider.GetRequiredService<IPasswordHasher<Usuario>>());
 }
 
 // Monitoramento (UptimeRobot, healthcheck do Docker): responde só "Healthy"/"Unhealthy", sem detalhes.
@@ -55,7 +68,11 @@ app.MapHealthChecks("/health").DisableRateLimiting();
 app.MapGroup("/v1")
     .MapMateriais()
     .MapPontos()
-    .MapIdentificacoes();
+    .MapIdentificacoes()
+    .MapLocalizacao()
+    .MapContas()
+    .MapParceiros()
+    .MapAdmin();
 
 app.Run();
 

@@ -1,6 +1,8 @@
 using DescartaAi.Api.Dados;
 using Microsoft.AspNetCore.Hosting;
+using DescartaAi.Api.Modulos.Localizacao;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DescartaAi.Api.Tests.Infra;
@@ -19,6 +21,24 @@ public sealed class ApiFactory(string connectionString, int requisicoesPorMinuto
         builder.UseSetting("Banco:MigrarAoIniciar", "true");
         builder.UseSetting("Limite:RequisicoesPorMinuto", requisicoesPorMinuto.ToString());
         builder.UseSetting("Cors:Origens", "https://descartaai.com.br");
+        builder.UseSetting("Jwt:Chave", "chave-de-teste-com-mais-de-32-caracteres!");
+        builder.UseSetting("Admin:Email", AdminEmail);
+        builder.UseSetting("Admin:Senha", AdminSenha);
+        builder.ConfigureTestServices(s => s.AddSingleton<IGeocodificador>(Geocodificador));
+    }
+
+    public const string AdminEmail = "admin@teste.local";
+    public const string AdminSenha = "senha-do-admin-1";
+
+    /// <summary>Substitui ViaCEP/Nominatim nos testes.</summary>
+    public GeocodificadorFalso Geocodificador { get; } = new();
+
+    /// <summary>Cliente já autenticado com o token informado.</summary>
+    public HttpClient ClienteCom(string token)
+    {
+        var c = CreateClient();
+        c.DefaultRequestHeaders.Authorization = new("Bearer", token);
+        return c;
     }
 
     /// <summary>Executa uma ação com acesso direto ao banco, para preparar cenários.</summary>

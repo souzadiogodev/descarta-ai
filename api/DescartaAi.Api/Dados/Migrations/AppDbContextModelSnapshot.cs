@@ -26,6 +26,32 @@ namespace DescartaAi.Api.Dados.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "unaccent");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("DescartaAi.Api.Dominio.Busca", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CriadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("criado_em");
+
+                    b.Property<int?>("MaterialId")
+                        .HasColumnType("integer")
+                        .HasColumnName("material_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_busca");
+
+                    b.HasIndex("MaterialId")
+                        .HasDatabaseName("ix_busca_material_id");
+
+                    b.ToTable("busca", (string)null);
+                });
+
             modelBuilder.Entity("DescartaAi.Api.Dominio.Categoria", b =>
                 {
                     b.Property<int>("Id")
@@ -409,6 +435,15 @@ namespace DescartaAi.Api.Dados.Migrations
                         {
                             t.HasCheckConstraint("ck_usuario_papel", "papel IN ('Parceiro','Admin')");
                         });
+                });
+
+            modelBuilder.Entity("DescartaAi.Api.Dominio.Busca", b =>
+                {
+                    b.HasOne("DescartaAi.Api.Dominio.Material", null)
+                        .WithMany()
+                        .HasForeignKey("MaterialId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_busca_material_material_id");
                 });
 
             modelBuilder.Entity("DescartaAi.Api.Dominio.Identificacao", b =>

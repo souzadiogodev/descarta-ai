@@ -31,6 +31,10 @@ services:
       Swagger__Habilitado: "false"
       Gemini__ChaveApi: ${GEMINI_CHAVE:-}
       Gemini__Modelo: ${GEMINI_MODELO:-gemini-2.5-flash}
+      Jwt__Chave: ${JWT_CHAVE:?defina JWT_CHAVE no .env}
+      Admin__Email: ${ADMIN_EMAIL:-}
+      Admin__Senha: ${ADMIN_SENHA:-}
+      Site__Url: ${SITE_ORIGEM}
       Limite__RequisicoesPorMinuto: "120"
       Limite__IdentificacoesPorMinuto: "10"
       # Só confia no X-Forwarded-For vindo do Caddy (IP fixo abaixo).

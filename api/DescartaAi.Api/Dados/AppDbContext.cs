@@ -13,6 +13,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<PontoMaterial> PontoMateriais => Set<PontoMaterial>();
     public DbSet<Reporte> Reportes => Set<Reporte>();
     public DbSet<Identificacao> Identificacoes => Set<Identificacao>();
+    public DbSet<Busca> Buscas => Set<Busca>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -107,6 +108,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.Confianca).HasPrecision(4, 3);
             e.HasOne<Material>().WithMany().HasForeignKey(x => x.MaterialSugeridoId);
             e.HasOne<Material>().WithMany().HasForeignKey(x => x.MaterialConfirmadoId);
+        });
+
+        mb.Entity<Busca>(e =>
+        {
+            e.ToTable("busca");
+            e.HasOne<Material>().WithMany().HasForeignKey(x => x.MaterialId).OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

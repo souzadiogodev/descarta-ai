@@ -103,3 +103,11 @@ public class Identificacao
     public bool Corrigido { get; set; }
     public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
 }
+
+/// <summary>Uma busca de pontos de coleta, para as estatísticas (RF21). Não guarda a localização do usuário.</summary>
+public class Busca
+{
+    public long Id { get; set; }
+    public int? MaterialId { get; set; }
+    public DateTime CriadoEm { get; set; } = DateTime.UtcNow;
+}
