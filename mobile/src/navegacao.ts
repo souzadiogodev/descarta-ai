@@ -11,4 +11,5 @@ export type Rotas = {
   Material: { id: number; nome: string };
   Ponto: { ponto: PontoProximo };
   Foto: undefined;
+  Dicas: undefined;
 };

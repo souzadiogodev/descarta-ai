@@ -34,6 +34,7 @@ export default function Inicio({ navigation }: Props) {
       <Botao titulo="Tirar foto do item" aoTocar={() => navigation.navigate("Foto")} />
       <Botao titulo="Pontos de coleta perto de mim" aoTocar={() => navigation.navigate("Mapa")} />
       <Botao titulo="Ver guia completo" secundario aoTocar={() => navigation.navigate("Guia")} />
+      <Botao titulo="Dicas de descarte consciente" secundario aoTocar={() => navigation.navigate("Dicas")} />
     </ScrollView>
   );
 }

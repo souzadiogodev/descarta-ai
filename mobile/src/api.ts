@@ -63,7 +63,19 @@ export const api = {
   material: (id: number, sinal?: AbortSignal) => get<MaterialDetalhe>(`/materiais/${id}`, sinal),
   proximos: (filtro: { lat: number; lng: number; raio: number; materialId?: number }, sinal?: AbortSignal) =>
     get<PontoProximo[]>(`/pontos/proximos${consulta(filtro)}`, sinal),
+  /** RF04: endereço ou CEP digitado quando o GPS não está disponível. */
+  localizar: (endereco: string, sinal?: AbortSignal) => get<Local[]>(`/localizacao${consulta({ endereco })}`, sinal),
+  /** RF19: aviso anônimo de informação errada sobre um ponto. */
+  reportar: (pontoId: string, motivo: MotivoReporte, comentario?: string) =>
+    enviar("POST", `/pontos/${pontoId}/reportes`, { motivo, comentario }).then(() => undefined),
 };
+
+export type Local = { descricao: string; lat: number; lng: number };
+export type MotivoReporte = "Fechado" | "EnderecoErrado" | "NaoAceitaMaterial" | "Outro";
+
+export const urlGoogleMaps = (lat: number, lng: number) =>
+  `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+export const urlWaze = (lat: number, lng: number) => `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
 
 export const formatarDistancia = (m: number) =>
   m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1).replace(".", ",")} km`;

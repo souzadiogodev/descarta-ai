@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { FlatList, Keyboard, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import MapView, { Marker, UrlTile } from "react-native-maps";
 import * as Location from "expo-location";
 import type { CompositeScreenProps } from "@react-navigation/native";
@@ -25,6 +25,8 @@ export default function Mapa({ navigation, route }: Props) {
   const [raioKm, setRaioKm] = useState(10);
   const [materialId, setMaterialId] = useState(route.params?.materialId);
   const mapa = useRef<MapView>(null);
+  // Se o usuário digitou um endereço, a resposta (lenta) do GPS não deve sobrescrever a escolha dele.
+  const escolheuEndereco = useRef(false);
 
   // Depende do objeto params (novo a cada navegação): reaplica o filtro mesmo que o id seja o mesmo
   // de antes, como quando o usuário limpou o filtro e voltou a tocar "Onde descartar".
@@ -33,15 +35,18 @@ export default function Mapa({ navigation, route }: Props) {
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
+      if (escolheuEndereco.current) return;
       if (status !== "granted") {
-        setAviso("Localização não liberada. Mostrando pontos a partir do centro de Araçatuba.");
+        setAviso("Localização não liberada. Mostrando a partir do centro de Araçatuba. Você pode digitar um endereço ou CEP.");
         return;
       }
       try {
         const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        if (escolheuEndereco.current) return;
         setOrigem({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         setUsandoGps(true);
       } catch {
+        if (escolheuEndereco.current) return;
         setAviso("Não foi possível obter sua localização. Mostrando a partir do centro de Araçatuba.");
       }
     })();
@@ -62,6 +67,28 @@ export default function Mapa({ navigation, route }: Props) {
   }, [pontos.dados, origem]);
 
   const proximoRaio = RAIOS[RAIOS.indexOf(raioKm) + 1];
+
+  // RF04: sem GPS (ou para buscar de outro lugar), o usuário digita endereço ou CEP.
+  const [endereco, setEndereco] = useState("");
+  const [buscandoEndereco, setBuscandoEndereco] = useState(false);
+  const buscarEndereco = async () => {
+    const texto = endereco.trim();
+    if (texto.length < 3) return setAviso("Digite um endereço ou CEP.");
+    Keyboard.dismiss();
+    setBuscandoEndereco(true);
+    try {
+      const [local] = await api.localizar(texto);
+      if (!local) return setAviso("Endereço não encontrado. Confira o CEP ou inclua a cidade.");
+      escolheuEndereco.current = true;
+      setOrigem({ lat: local.lat, lng: local.lng });
+      setUsandoGps(false);
+      setAviso(`Mostrando a partir de: ${local.descricao.split(",").slice(0, 3).join(",")}.`);
+    } catch {
+      setAviso("Busca de endereço indisponível agora. Tente de novo em instantes.");
+    } finally {
+      setBuscandoEndereco(false);
+    }
+  };
 
   return (
     <View style={e.tela}>
@@ -87,7 +114,23 @@ export default function Mapa({ navigation, route }: Props) {
       <Text style={e.creditos}>© MapTiler · © colaboradores do OpenStreetMap</Text>
 
       <View style={e.painel}>
-        {aviso && <Text style={e.aviso}>{aviso}</Text>}
+        {aviso && <Text style={e.aviso} accessibilityLiveRegion="polite">{aviso}</Text>}
+        <View style={e.linhaEndereco}>
+          <TextInput
+            style={e.entrada}
+            value={endereco}
+            onChangeText={setEndereco}
+            onSubmitEditing={buscarEndereco}
+            returnKeyType="search"
+            placeholder="Endereço ou CEP"
+            accessibilityLabel="Buscar a partir de um endereço ou CEP"
+            autoComplete="postal-address"
+          />
+          <Pressable accessibilityRole="button" accessibilityLabel="Buscar endereço" onPress={buscarEndereco}
+            disabled={buscandoEndereco} style={[e.raio, { flex: 0, paddingHorizontal: 14 }]}>
+            <Text style={e.raioTexto}>{buscandoEndereco ? "…" : "Buscar"}</Text>
+          </Pressable>
+        </View>
         {materialId !== undefined && (
           <View style={e.filtro}>
             <Text style={e.texto}>Aceita: {route.params?.materialNome ?? "material escolhido"}</Text>
@@ -146,6 +189,11 @@ const e = StyleSheet.create({
   limpar: { minHeight: toqueMinimo, justifyContent: "center", paddingHorizontal: 8 },
   texto: { fontSize: 15, color: cor.texto },
   raios: { flexDirection: "row", gap: 6 },
+  linhaEndereco: { flexDirection: "row", gap: 6 },
+  entrada: {
+    flex: 1, minHeight: toqueMinimo, borderWidth: 2, borderColor: cor.textoSuave, borderRadius: raio,
+    paddingHorizontal: 10, fontSize: 16, color: cor.texto,
+  },
   raio: {
     flex: 1, minHeight: toqueMinimo, justifyContent: "center", alignItems: "center",
     borderWidth: 1, borderColor: cor.primaria, borderRadius: raio,

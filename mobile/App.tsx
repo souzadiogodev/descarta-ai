@@ -11,6 +11,7 @@ import Material from "./src/telas/Material";
 import Mapa from "./src/telas/Mapa";
 import Ponto from "./src/telas/Ponto";
 import Foto from "./src/telas/Foto";
+import Dicas from "./src/telas/Dicas";
 
 const Pilha = createNativeStackNavigator<Rotas>();
 const Tab = createBottomTabNavigator<TAbas>();
@@ -49,6 +50,7 @@ export default function App() {
           <Pilha.Screen name="Material" component={Material} options={({ route }) => ({ title: route.params.nome })} />
           <Pilha.Screen name="Ponto" component={Ponto} options={{ title: "Ponto de coleta" }} />
           <Pilha.Screen name="Foto" component={Foto} options={{ title: "Identificar por foto" }} />
+          <Pilha.Screen name="Dicas" component={Dicas} options={{ title: "Dicas de descarte" }} />
         </Pilha.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
