@@ -66,7 +66,7 @@ export function Privacidade() {
 
       <h2>Resumo</h2>
       <ul>
-        <li>Você não precisa criar conta para usar o site.</li>
+        <li>Você não precisa criar conta para consultar o guia e o mapa. Só parceiros que cadastram pontos têm conta.</li>
         <li>Não usamos cookies de rastreamento, publicidade ou ferramentas de análise de comportamento.</li>
         <li>Sua localização só é usada se você permitir, e não fica salva no nosso banco de dados.</li>
       </ul>
@@ -96,6 +96,21 @@ export function Privacidade() {
             <td>Execução do serviço solicitado (art. 7º, V)</td>
           </tr>
           <tr>
+            <td>Endereço ou CEP digitado na busca do mapa</td>
+            <td>Encontrar as coordenadas e calcular a distância até os pontos</td>
+            <td>Execução do serviço solicitado (art. 7º, V)</td>
+          </tr>
+          <tr>
+            <td>Aviso de informação errada (motivo e comentário opcional), sem identificação de quem enviou</td>
+            <td>Corrigir os dados dos pontos de coleta</td>
+            <td>Legítimo interesse (art. 7º, IX)</td>
+          </tr>
+          <tr>
+            <td>Conta de parceiro: nome, e-mail, senha (guardada cifrada), nome e tipo do estabelecimento e, se informados, CNPJ/CPF e telefone</td>
+            <td>Permitir que o parceiro cadastre e edite os próprios pontos e que a equipe entre em contato sobre eles</td>
+            <td>Execução de contrato a pedido do titular (art. 7º, V)</td>
+          </tr>
+          <tr>
             <td>Dados técnicos de acesso (endereço IP, data e hora, endereço da página acessada)</td>
             <td>Segurança e funcionamento do servidor</td>
             <td>Legítimo interesse (art. 7º, IX) e Marco Civil da Internet (art. 15)</td>
@@ -106,7 +121,8 @@ export function Privacidade() {
       <h2>3. O que acontece com sua localização</h2>
       <p>
         As coordenadas são enviadas ao nosso servidor apenas para calcular a distância e devolver a lista de
-        pontos. Não são gravadas no banco de dados nem associadas a você. Elas podem aparecer temporariamente
+        pontos. Não são gravadas no banco de dados nem associadas a você (contamos apenas quantas buscas
+        foram feitas, sem o local). Elas podem aparecer temporariamente
         nos registros técnicos do servidor (logs). Você pode negar ou revogar a permissão a qualquer momento
         nas configurações do navegador; o site continua funcionando a partir do centro da cidade.
       </p>
@@ -122,12 +138,18 @@ export function Privacidade() {
       <h2>4. Serviços de terceiros</h2>
       <ul>
         <li>
-          <strong>OpenStreetMap</strong>: as imagens do mapa são carregadas dos servidores do OpenStreetMap,
-          que recebem seu endereço IP. Veja a{" "}
-          <a href="https://osmfoundation.org/wiki/Privacy_Policy" target="_blank" rel="noreferrer">política de privacidade da OSM Foundation</a>.
+          <strong>MapTiler e OpenStreetMap</strong>: as imagens do mapa vêm do MapTiler (com dados do
+          OpenStreetMap), que recebe seu endereço IP. Veja a{" "}
+          <a href="https://www.maptiler.com/privacy-policy/" target="_blank" rel="noreferrer">política de privacidade do MapTiler</a>.
         </li>
         <li>
-          <strong>Google Maps</strong>: só é acionado quando você clica em “Como chegar”. A partir daí vale a{" "}
+          <strong>ViaCEP e Nominatim (OpenStreetMap)</strong>: quando você busca por endereço ou CEP, nosso
+          servidor repassa o texto digitado a esses serviços para obter as coordenadas. Eles não recebem seu IP,
+          só o do nosso servidor. Veja a{" "}
+          <a href="https://osmfoundation.org/wiki/Privacy_Policy" target="_blank" rel="noreferrer">política da OSM Foundation</a>.
+        </li>
+        <li>
+          <strong>Google Maps e Waze</strong>: só são acionados quando você clica no botão de rota. A partir daí vale a{" "}
           <a href="https://policies.google.com/privacy" target="_blank" rel="noreferrer">política de privacidade do Google</a>.
         </li>
         <li>
@@ -140,7 +162,8 @@ export function Privacidade() {
       <h2>5. Por quanto tempo guardamos</h2>
       <p>
         Registros técnicos de acesso são mantidos pelo prazo de 6 meses exigido pelo Marco Civil da Internet
-        e depois apagados.
+        e depois apagados. Dados da conta de parceiro ficam guardados enquanto a conta existir; para excluí-la,
+        escreva para <Contato />. Avisos de informação errada são guardados por até 12 meses depois de tratados.
       </p>
 
       <h2>6. Seus direitos</h2>
@@ -154,13 +177,13 @@ export function Privacidade() {
       <h2>7. Segurança</h2>
       <p>
         O acesso ao site é feito por conexão criptografada (HTTPS) e o servidor só guarda o necessário para
-        funcionar.
+        funcionar. Senhas são guardadas cifradas (não conseguimos lê-las), e o login de parceiros fica salvo
+        só na aba do navegador, sumindo ao fechá-la.
       </p>
 
       <h2>8. Mudanças nesta política</h2>
       <p>
-        Se passarmos a tratar novos dados (por exemplo, cadastro de parceiros), esta página será atualizada
-        antes, com a data de revisão no topo.
+        Se passarmos a tratar novos dados, esta página será atualizada antes, com a data de revisão no topo.
       </p>
     </Pagina>
   );

@@ -28,7 +28,7 @@ type Resposta = unknown | ((url: URL) => unknown);
  * devolvido. Use `falha(status)` para simular erro. Retorna o mock para inspecionar chamadas.
  */
 export function simularApi(rotas: Record<string, Resposta>) {
-  const fetchFalso = vi.fn(async (entrada: string | URL | Request) => {
+  const fetchFalso = vi.fn(async (entrada: string | URL | Request, _init?: RequestInit) => {
     const url = new URL(String(entrada));
     const caminho = url.pathname.replace(/^\/v1/, "");
     const chave = Object.keys(rotas)

@@ -5,5 +5,5 @@ export const INSTITUCIONAL = {
   cnpj: import.meta.env.VITE_NSI_CNPJ ?? "",
   email: import.meta.env.VITE_CONTATO_EMAIL ?? "",
   cidade: "Araçatuba/SP",
-  atualizadoEm: "5 de novembro de 2026",
+  atualizadoEm: "7 de novembro de 2026",
 };

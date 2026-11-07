@@ -5,11 +5,14 @@ import "@fontsource-variable/public-sans";
 import "leaflet/dist/leaflet.css";
 import "./index.css";
 import App from "./App";
+import { SessaoProvider } from "./sessao";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>
-      <App />
+      <SessaoProvider>
+        <App />
+      </SessaoProvider>
     </BrowserRouter>
   </StrictMode>
 );

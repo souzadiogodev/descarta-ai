@@ -29,36 +29,48 @@ public partial class NominatimGeocodificador(HttpClient http, IConfiguration con
     {
         try
         {
-            var consulta = texto;
+            var consultas = new List<string> { texto };
             var cep = Regex.Replace(texto, @"\D", "");
             if (Cep().IsMatch(texto.Trim()) && cep.Length == 8)
             {
                 var via = await http.GetFromJsonAsync<JsonElement>($"https://viacep.com.br/ws/{cep}/json/", ct);
                 if (via.TryGetProperty("erro", out _)) return [];
-                consulta = string.Join(", ", new[] { "logradouro", "bairro", "localidade", "uf" }
-                    .Select(c => via.TryGetProperty(c, out var v) ? v.GetString() : null)
-                    .Where(v => !string.IsNullOrWhiteSpace(v)));
+                string? Campo(string c) => via.TryGetProperty(c, out var v) && !string.IsNullOrWhiteSpace(v.GetString()) ? v.GetString() : null;
+                string Juntar(params string?[] partes) => string.Join(", ", partes.Where(p => p is not null));
+                // O bairro às vezes atrapalha o Nominatim; sem ele, a rua costuma ser encontrada.
+                consultas = [Juntar(Campo("logradouro"), Campo("bairro"), Campo("localidade"), Campo("uf")),
+                             Juntar(Campo("logradouro"), Campo("localidade"), Campo("uf"))];
             }
 
-            var url = "https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=br&addressdetails=0"
-                + $"&limit={MaxResultados}&accept-language=pt-BR&q={Uri.EscapeDataString(consulta)}";
-            using var req = new HttpRequestMessage(HttpMethod.Get, url);
-            req.Headers.UserAgent.ParseAdd($"DescartaAi/1.0 (+{config["Site:Url"] ?? "https://descartaai.com.br"})");
-            using var resp = await http.SendAsync(req, ct);
-            resp.EnsureSuccessStatusCode();
-            var itens = await resp.Content.ReadFromJsonAsync<JsonElement>(ct);
-
-            return itens.EnumerateArray()
-                .Select(i => new LocalDto(
-                    i.GetProperty("display_name").GetString() ?? consulta,
-                    double.Parse(i.GetProperty("lat").GetString()!, CultureInfo.InvariantCulture),
-                    double.Parse(i.GetProperty("lon").GetString()!, CultureInfo.InvariantCulture)))
-                .ToList();
+            foreach (var (consulta, i) in consultas.Distinct().Select((c, i) => (c, i)))
+            {
+                if (i > 0) await Task.Delay(TimeSpan.FromSeconds(1), ct); // política do Nominatim: 1 req/s
+                var achados = await NominatimAsync(consulta, ct);
+                if (achados.Count > 0) return achados;
+            }
+            return [];
         }
         catch (Exception e) when (e is HttpRequestException or TaskCanceledException { CancellationToken.IsCancellationRequested: false } or JsonException)
         {
             throw new GeocodificadorIndisponivelException(e.Message);
         }
+    }
+
+    private async Task<List<LocalDto>> NominatimAsync(string consulta, CancellationToken ct)
+    {
+        var url = "https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=br&addressdetails=0"
+            + $"&limit={MaxResultados}&accept-language=pt-BR&q={Uri.EscapeDataString(consulta)}";
+        using var req = new HttpRequestMessage(HttpMethod.Get, url);
+        req.Headers.UserAgent.ParseAdd($"DescartaAi/1.0 (+{config["Site:Url"] ?? "https://descartaai.com.br"})");
+        using var resp = await http.SendAsync(req, ct);
+        resp.EnsureSuccessStatusCode();
+        var itens = await resp.Content.ReadFromJsonAsync<JsonElement>(ct);
+        return itens.EnumerateArray()
+            .Select(i => new LocalDto(
+                i.GetProperty("display_name").GetString() ?? consulta,
+                double.Parse(i.GetProperty("lat").GetString()!, CultureInfo.InvariantCulture),
+                double.Parse(i.GetProperty("lon").GetString()!, CultureInfo.InvariantCulture)))
+            .ToList();
     }
 
     [GeneratedRegex(@"^\d{5}-?\d{3}$")]

@@ -10,6 +10,20 @@ export const plural = (n: number, singular: string, pluralTexto: string) => `${n
 export const urlRota = (lat: number, lng: number) =>
   `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
 
+export const urlWaze = (lat: number, lng: number) =>
+  `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
+
+/**
+ * Fundo do mapa. Com chave do MapTiler (plano grátis), usa os tiles dele; sem chave, os do
+ * OpenStreetMap, que servem para desenvolvimento mas não para tráfego de produção.
+ */
+const CHAVE_MAPA = import.meta.env.VITE_MAPTILER_CHAVE;
+export const TILES = CHAVE_MAPA
+  ? { url: `https://api.maptiler.com/maps/streets-v2/256/{z}/{x}/{y}.png?key=${CHAVE_MAPA}`,
+      atribuicao: '&copy; <a href="https://www.maptiler.com/copyright/">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }
+  : { url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+      atribuicao: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' };
+
 /** Lê um parâmetro numérico positivo da URL; ignora valores inválidos. */
 export const numeroDaUrl = (params: URLSearchParams, chave: string) => {
   const n = Number(params.get(chave));

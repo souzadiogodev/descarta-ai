@@ -138,14 +138,60 @@ describe("Mapa", () => {
     expect(await screen.findAllByText("Coletor de pilhas")).not.toHaveLength(0);
   });
 
-  it("o link de rota abre o Google Maps em nova aba", async () => {
+  it("oferece rota pelo Google Maps e pelo Waze, em nova aba", async () => {
     api();
     renderizarNaRota(<Mapa />, "/mapa");
     await screen.findByRole("list");
 
-    const links = screen.getAllByRole("link", { name: /Como chegar/ });
-    expect(links[0]).toHaveAttribute("href", "https://www.google.com/maps/dir/?api=1&destination=-21.2,-50.44");
-    expect(links[0]).toHaveAttribute("target", "_blank");
-    expect(links[0]).toHaveAttribute("rel", "noreferrer");
+    const google = screen.getByRole("link", { name: "Rota até Coletor de pilhas no Google Maps" });
+    expect(google).toHaveAttribute("href", "https://www.google.com/maps/dir/?api=1&destination=-21.2,-50.44");
+    expect(google).toHaveAttribute("target", "_blank");
+    expect(google).toHaveAttribute("rel", "noreferrer");
+    const waze = screen.getByRole("link", { name: "Rota até Coletor de pilhas no Waze" });
+    expect(waze).toHaveAttribute("href", "https://waze.com/ul?ll=-21.2,-50.44&navigate=yes");
+  });
+
+  it("busca a partir de um endereço ou CEP digitado", async () => {
+    const fetch = simularApi({
+      "/materiais": materiais, "/pontos/proximos": pontos,
+      "/localizacao": [{ descricao: "Rua Tiradentes, Araçatuba - SP", lat: -21.21, lng: -50.45 }],
+    });
+    renderizarNaRota(<Mapa />, "/mapa");
+    await screen.findByRole("list");
+
+    await userEvent.type(screen.getByLabelText(/endereço ou CEP/), "16010-000");
+    await userEvent.click(screen.getByRole("button", { name: "Buscar" }));
+
+    expect(await screen.findByText(/Mostrando a partir de: Rua Tiradentes/)).toBeInTheDocument();
+    await waitFor(() => expect(chamadas(fetch)).toContain("/v1/pontos/proximos?lat=-21.21&lng=-50.45&raio=10000"));
+    expect(chamadas(fetch)).toContain("/v1/localizacao?endereco=16010-000");
+  });
+
+  it("avisa quando o endereço não é encontrado", async () => {
+    simularApi({ "/materiais": materiais, "/pontos/proximos": pontos, "/localizacao": [] });
+    renderizarNaRota(<Mapa />, "/mapa");
+    await screen.findByRole("list");
+
+    await userEvent.type(screen.getByLabelText(/endereço ou CEP/), "Rua que não existe");
+    await userEvent.click(screen.getByRole("button", { name: "Buscar" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Endereço não encontrado");
+  });
+
+  it("envia aviso de informação errada sobre um ponto", async () => {
+    const fetch = simularApi({ "/materiais": materiais, "/pontos/proximos": pontos, "/pontos/a/reportes": new Response(null, { status: 201 }) });
+    renderizarNaRota(<Mapa />, "/mapa");
+    const lista = await screen.findByRole("list");
+
+    await userEvent.click(within(lista).getAllByRole("button", { name: /Informar erro/ })[0]);
+    await userEvent.click(screen.getByRole("button", { name: "Enviar aviso" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("Escolha o que está errado");
+
+    await userEvent.click(screen.getByLabelText(/fechou ou não existe/));
+    await userEvent.click(screen.getByRole("button", { name: "Enviar aviso" }));
+
+    expect(await screen.findByText(/Obrigado! Vamos conferir/)).toBeInTheDocument();
+    const envio = fetch.mock.calls.find(([u]) => String(u).endsWith("/pontos/a/reportes"))!;
+    expect(envio[1]).toMatchObject({ method: "POST", body: JSON.stringify({ motivo: "Fechado" }) });
   });
 });

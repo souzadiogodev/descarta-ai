@@ -1,14 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import { MapContainer, TileLayer, Marker, Popup, CircleMarker, useMap } from "react-leaflet";
 import L from "leaflet";
-import { Crosshair, Loader2, MapPin, Navigation } from "lucide-react";
-import { api, type PontoProximo } from "../api";
+import { Crosshair, Flag, Loader2, MapPin, Navigation, Search } from "lucide-react";
+import { api, mensagemDeErro, type Local, type MotivoReporte, type PontoProximo } from "../api";
 import { Aviso, AvisoErro, ListaEsqueleto } from "../componentes/Estados";
-import { formatarDistancia, numeroDaUrl, plural, urlRota, useConsulta } from "../util";
+import { formatarDistancia, numeroDaUrl, plural, TILES, urlRota, urlWaze, useConsulta } from "../util";
 
 type Coordenada = [number, number];
-type SituacaoGps = "centro" | "buscando" | "ok" | "negado";
+type SituacaoGps = "centro" | "buscando" | "ok" | "negado" | "endereco";
 
 const CENTRO_ARACATUBA: Coordenada = [-21.2089, -50.4329];
 const RAIOS = [2000, 5000, 10000, 25000, 50000];
@@ -21,7 +21,8 @@ const MENSAGEM_GPS: Record<SituacaoGps, string> = {
   centro: "Mostrando a partir do centro de Araçatuba.",
   buscando: "Obtendo sua localização…",
   ok: "Mostrando a partir da sua localização.",
-  negado: "Não conseguimos sua localização (permissão negada ou indisponível). Mostrando a partir do centro.",
+  negado: "Não conseguimos sua localização (permissão negada ou indisponível). Mostrando a partir do centro. Você pode digitar um endereço ou CEP.",
+  endereco: "",
 };
 
 const pino = (ativo: boolean) => L.divIcon({
@@ -39,6 +40,7 @@ export default function Mapa() {
   const [origem, setOrigem] = useState<Coordenada>(CENTRO_ARACATUBA);
   const [gps, setGps] = useState<SituacaoGps>("centro");
   const [selecionadoId, setSelecionadoId] = useState<string>();
+  const [enderecoEscolhido, setEnderecoEscolhido] = useState<string>();
 
   const materiais = useConsulta(s => api.materiais({}, s), []);
   const pontos = useConsulta(
@@ -58,7 +60,7 @@ export default function Mapa() {
     if (!navigator.geolocation) return setGps("negado");
     setGps("buscando");
     navigator.geolocation.getCurrentPosition(
-      p => { setOrigem([p.coords.latitude, p.coords.longitude]); setGps("ok"); },
+      p => { setOrigem([p.coords.latitude, p.coords.longitude]); setGps("ok"); setEnderecoEscolhido(undefined); },
       () => setGps("negado"),
       { enableHighAccuracy: true, timeout: 10000 });
   };
@@ -91,8 +93,12 @@ export default function Mapa() {
         </button>
       </div>
 
+      <BuscaEndereco onEscolher={l => {
+        setOrigem([l.lat, l.lng]); setGps("endereco"); setEnderecoEscolhido(l.descricao);
+      }} />
+
       <p className="status" aria-live="polite">
-        {MENSAGEM_GPS[gps]}
+        {gps === "endereco" ? `Mostrando a partir de: ${enderecoEscolhido}.` : MENSAGEM_GPS[gps]}
         {pontos.dados && !pontos.carregando && ` ${plural(pontos.dados.length, "ponto encontrado", "pontos encontrados")}.`}
       </p>
 
@@ -132,9 +138,7 @@ function MapaPontos({ origem, pontos, selecionado, onSelecionar }: {
   return (
     <div className="mapa-caixa">
       <MapContainer center={origem} zoom={ZOOM_INICIAL} className="mapa" aria-label="Mapa dos pontos de descarte">
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <TileLayer attribution={TILES.atribuicao} url={TILES.url} />
         <Enquadramento origem={origem} pontos={pontos} />
         <CircleMarker center={origem} radius={9}
           pathOptions={{ color: "#fff", weight: 3, fillColor: "#2563eb", fillOpacity: 1 }} />
@@ -172,7 +176,9 @@ function MarcadorPonto({ ponto, ativo, onSelecionar }: { ponto: PontoProximo; at
     <Marker ref={marcador} position={[ponto.lat, ponto.lng]} icon={pino(ativo)} eventHandlers={{ click: onSelecionar }}>
       <Popup>
         <strong>{ponto.nome}</strong><br />{ponto.endereco}<br />
-        <a href={urlRota(ponto.lat, ponto.lng)} target="_blank" rel="noreferrer">Como chegar</a>
+        <a href={urlRota(ponto.lat, ponto.lng)} target="_blank" rel="noreferrer">Google Maps</a>
+        {" · "}
+        <a href={urlWaze(ponto.lat, ponto.lng)} target="_blank" rel="noreferrer">Waze</a>
       </Popup>
     </Marker>
   );
@@ -180,6 +186,7 @@ function MarcadorPonto({ ponto, ativo, onSelecionar }: { ponto: PontoProximo; at
 
 function CartaoPonto({ ponto: p, selecionado, onSelecionar }: { ponto: PontoProximo; selecionado: boolean; onSelecionar: () => void }) {
   const distancia = formatarDistancia(p.distanciaMetros);
+  const [reportando, setReportando] = useState(false);
   return (
     <li className={`ponto ${selecionado ? "selecionado" : ""}`}>
       <button className="ponto-corpo" onClick={onSelecionar} aria-label={`${p.nome}, ${distancia}. Mostrar no mapa`}>
@@ -190,9 +197,124 @@ function CartaoPonto({ ponto: p, selecionado, onSelecionar }: { ponto: PontoProx
         <span className="ponto-end"><MapPin size={14} aria-hidden="true" /> {p.endereco}</span>
         <span className="tags">{p.materiais.map(n => <span key={n} className="tag">{n}</span>)}</span>
       </button>
-      <a className="botao secundario pequeno" href={urlRota(p.lat, p.lng)} target="_blank" rel="noreferrer">
-        <Navigation size={16} aria-hidden="true" /> Como chegar
-      </a>
+      <div className="ponto-acoes">
+        <a className="botao secundario pequeno" href={urlRota(p.lat, p.lng)} target="_blank" rel="noreferrer"
+          aria-label={`Rota até ${p.nome} no Google Maps`}>
+          <Navigation size={16} aria-hidden="true" /> Google Maps
+        </a>
+        <a className="botao secundario pequeno" href={urlWaze(p.lat, p.lng)} target="_blank" rel="noreferrer"
+          aria-label={`Rota até ${p.nome} no Waze`}>
+          <Navigation size={16} aria-hidden="true" /> Waze
+        </a>
+        <button className="link link-acao" onClick={() => setReportando(r => !r)} aria-expanded={reportando}>
+          <Flag size={16} aria-hidden="true" /> Informar erro
+        </button>
+      </div>
+      {reportando && <FormReporte ponto={p} onFechar={() => setReportando(false)} />}
     </li>
+  );
+}
+
+/** RF04: quando o GPS falha ou o usuário quer buscar a partir de outro lugar. */
+function BuscaEndereco({ onEscolher }: { onEscolher: (l: Local) => void }) {
+  const [texto, setTexto] = useState("");
+  const [estado, setEstado] = useState<{ carregando?: boolean; erro?: string; opcoes?: Local[] }>({});
+
+  const buscar = async (e: FormEvent) => {
+    e.preventDefault();
+    if (texto.trim().length < 3) return setEstado({ erro: "Digite pelo menos 3 caracteres." });
+    setEstado({ carregando: true });
+    try {
+      const opcoes = await api.localizar(texto.trim());
+      if (opcoes.length === 1) { onEscolher(opcoes[0]); setEstado({}); return; }
+      setEstado(opcoes.length ? { opcoes } : { erro: "Endereço não encontrado. Confira o CEP ou inclua a cidade." });
+    } catch (erro) {
+      setEstado({ erro: mensagemDeErro(erro, "Busca de endereço indisponível. Tente de novo ou use sua localização.") });
+    }
+  };
+
+  return (
+    <form className="busca-endereco" onSubmit={buscar} role="search" aria-label="Buscar a partir de um endereço">
+      <label htmlFor="f-endereco" className="rotulo">Ou busque a partir de um endereço ou CEP</label>
+      <div className="linha">
+        <input id="f-endereco" value={texto} onChange={e => setTexto(e.target.value)}
+          placeholder="Ex.: 16010-000 ou Rua Floriano Peixoto, Araçatuba" autoComplete="street-address" />
+        <button className="botao secundario" disabled={estado.carregando}>
+          {estado.carregando ? <Loader2 size={18} className="girando" aria-hidden="true" /> : <Search size={18} aria-hidden="true" />}
+          Buscar
+        </button>
+      </div>
+      {estado.erro && <p className="erro-campo" role="alert">{estado.erro}</p>}
+      {estado.opcoes && (
+        <fieldset className="opcoes-endereco">
+          <legend>Qual destes?</legend>
+          {estado.opcoes.map(o => (
+            <button type="button" key={`${o.lat},${o.lng}`} className="link"
+              onClick={() => { onEscolher(o); setEstado({}); }}>{o.descricao}</button>
+          ))}
+        </fieldset>
+      )}
+    </form>
+  );
+}
+
+const MOTIVOS: { valor: MotivoReporte; texto: string }[] = [
+  { valor: "Fechado", texto: "O ponto fechou ou não existe mais" },
+  { valor: "EnderecoErrado", texto: "O endereço ou a localização está errado" },
+  { valor: "NaoAceitaMaterial", texto: "Não aceita algum material listado" },
+  { valor: "Outro", texto: "Outro problema" },
+];
+
+/** RF19: o cidadão avisa que a informação do ponto está errada; o admin revisa no painel. */
+function FormReporte({ ponto, onFechar }: { ponto: PontoProximo; onFechar: () => void }) {
+  const [motivo, setMotivo] = useState<MotivoReporte>();
+  const [comentario, setComentario] = useState("");
+  const [estado, setEstado] = useState<"editando" | "enviando" | "enviado">("editando");
+  const [erro, setErro] = useState<string>();
+
+  if (estado === "enviado")
+    return (
+      <div className="aviso sucesso" role="status">
+        <p>Obrigado! Vamos conferir a informação de “{ponto.nome}”.</p>
+        <button className="link" onClick={onFechar}>Fechar</button>
+      </div>
+    );
+
+  const enviar = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!motivo) return setErro("Escolha o que está errado.");
+    if (motivo === "Outro" && !comentario.trim()) return setErro("Conte o que está errado.");
+    setEstado("enviando");
+    setErro(undefined);
+    try {
+      await api.reportar(ponto.id, motivo, comentario.trim() || undefined);
+      setEstado("enviado");
+    } catch (x) {
+      setErro(mensagemDeErro(x));
+      setEstado("editando");
+    }
+  };
+
+  return (
+    <form className="form-reporte" onSubmit={enviar}>
+      <fieldset>
+        <legend>O que está errado em “{ponto.nome}”?</legend>
+        {MOTIVOS.map(m => (
+          <label key={m.valor} className="opcao">
+            <input type="radio" name={`motivo-${ponto.id}`} value={m.valor}
+              checked={motivo === m.valor} onChange={() => setMotivo(m.valor)} /> {m.texto}
+          </label>
+        ))}
+      </fieldset>
+      <label htmlFor={`coment-${ponto.id}`} className="rotulo">Detalhes {motivo !== "Outro" && "(opcional)"}</label>
+      <textarea id={`coment-${ponto.id}`} value={comentario} maxLength={500} rows={3}
+        onChange={e => setComentario(e.target.value)} />
+      <p className="dica">O aviso é anônimo. Não escreva dados pessoais.</p>
+      {erro && <p className="erro-campo" role="alert">{erro}</p>}
+      <div className="acoes">
+        <button className="botao pequeno" disabled={estado === "enviando"}>Enviar aviso</button>
+        <button type="button" className="botao secundario pequeno" onClick={onFechar}>Cancelar</button>
+      </div>
+    </form>
   );
 }
