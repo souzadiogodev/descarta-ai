@@ -1,5 +1,12 @@
 import { api, consulta, ErroApi, formatarDistancia } from "./api";
 
+// O File do expo-file-system é nativo; no teste basta um Blob que guarde a uri.
+jest.mock("expo-file-system", () => ({
+  File: class extends Blob {
+    constructor() { super(["imagem"], { type: "image/jpeg" }); }
+  },
+}));
+
 const resposta = (status: number, corpo: unknown = {}) =>
   ({ ok: status < 400, status, json: async () => corpo }) as Response;
 
@@ -45,6 +52,9 @@ describe("api", () => {
     expect(url).toMatch(/\/identificacoes$/);
     expect(init.method).toBe("POST");
     expect(init.body).toBeInstanceOf(FormData);
+    // Precisa ser um arquivo (Blob), não o antigo { uri, type, name }, que o expo/fetch rejeita.
+    const arquivo = (init.body as FormData).get("foto");
+    expect(arquivo).toBeInstanceOf(Blob);
     expect(init.headers).toBeUndefined(); // o boundary do multipart é definido pelo próprio fetch
     expect(r).toEqual({ id: 1, sugestoes: [] });
   });

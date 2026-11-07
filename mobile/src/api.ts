@@ -1,5 +1,7 @@
 // Mesmo contrato do site (web/src/api.ts). No celular, "localhost" é o próprio aparelho:
 // defina EXPO_PUBLIC_API_URL com o IP do computador na rede (ex.: http://192.168.0.10:5158/v1).
+import { File } from "expo-file-system";
+
 const BASE = process.env.EXPO_PUBLIC_API_URL ?? "http://10.0.2.2:5158/v1";
 
 export type Categoria = { id: number; nome: string; icone?: string };
@@ -48,8 +50,9 @@ async function enviar(metodo: "POST" | "PATCH", caminho: string, corpo: FormData
 export const api = {
   identificar: async (foto: { uri: string; tipo: string; nome: string }, sinal?: AbortSignal) => {
     const form = new FormData();
-    // React Native aceita { uri, type, name } como arquivo no FormData.
-    form.append("foto", { uri: foto.uri, type: foto.tipo, name: foto.nome } as unknown as Blob);
+    // O fetch do Expo (expo/fetch) não aceita o antigo { uri, type, name }: o arquivo vai como File,
+    // que implementa Blob. O tipo é deduzido da extensão do arquivo (.jpg).
+    form.append("foto", new File(foto.uri) as unknown as Blob, foto.nome);
     return (await enviar("POST", "/identificacoes", form, sinal)).json() as Promise<Identificacao>;
   },
   confirmar: (id: number, materialId: number) =>

@@ -13,6 +13,10 @@ import { useConsulta } from "../useConsulta";
 
 type Props = CompositeScreenProps<BottomTabScreenProps<Abas, "Mapa">, NativeStackScreenProps<Rotas>>;
 const RAIOS = [2, 5, 10, 20, 50];
+// Os servidores do OpenStreetMap bloqueiam tiles pedidos por apps; o MapTiler (plano grátis) serve
+// os mesmos dados do OSM. A chave vai dentro do app de qualquer jeito, então não é segredo.
+const CHAVE_MAPA = process.env.EXPO_PUBLIC_MAPTILER_CHAVE ?? "";
+const TILES = `https://api.maptiler.com/maps/streets-v2/256/{z}/{x}/{y}.png?key=${CHAVE_MAPA}`;
 
 export default function Mapa({ navigation, route }: Props) {
   const [origem, setOrigem] = useState(CENTRO_PADRAO);
@@ -44,7 +48,7 @@ export default function Mapa({ navigation, route }: Props) {
   }, []);
 
   const pontos = useConsulta(
-    (s) => api.proximos({ lat: origem.lat, lng: origem.lng, raio: raioKm, materialId }, s),
+    (s) => api.proximos({ lat: origem.lat, lng: origem.lng, raio: raioKm * 1000, materialId }, s),
     [origem.lat, origem.lng, raioKm, materialId],
   );
 
@@ -68,7 +72,7 @@ export default function Mapa({ navigation, route }: Props) {
         showsUserLocation={usandoGps}
         initialRegion={{ latitude: origem.lat, longitude: origem.lng, latitudeDelta: 0.1, longitudeDelta: 0.1 }}
       >
-        <UrlTile urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png" maximumZ={19} shouldReplaceMapContent />
+        <UrlTile urlTemplate={TILES} maximumZ={19} shouldReplaceMapContent />
         {pontos.dados?.map((p) => (
           <Marker
             key={p.id}
@@ -80,7 +84,7 @@ export default function Mapa({ navigation, route }: Props) {
           />
         ))}
       </MapView>
-      <Text style={e.creditos}>© colaboradores do OpenStreetMap</Text>
+      <Text style={e.creditos}>© MapTiler · © colaboradores do OpenStreetMap</Text>
 
       <View style={e.painel}>
         {aviso && <Text style={e.aviso}>{aviso}</Text>}
