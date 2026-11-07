@@ -7,13 +7,13 @@ Projeto de extensão (UNIP, Análise e Desenvolvimento de Sistemas), desenvolvid
 ## Funcionalidades
 
 - **Guia de descarte**: busca por item (sem precisar de acento) e filtro por tipo de resíduo, com instruções, cuidados e aviso de resíduo perigoso.
-- **Mapa de pontos de coleta**: busca por proximidade (raio de 2 a 50 km), filtro por material, uso opcional da localização do usuário e link "Como chegar" no Google Maps.
-- **Páginas institucionais**: Sobre, Política de Privacidade (LGPD) e Termos de Uso.
-- Interface acessível: navegação por teclado, foco visível, rótulos em todos os campos, áreas de toque de 44 px e suporte a leitores de tela.
-
+- **Mapa de pontos de coleta**: busca por proximidade (raio de 2 a 50 km), filtro por material, localização do usuário ou endereço/CEP digitado, e rota pelo Google Maps ou pelo Waze.
 - **Identificação por foto (app)**: a foto é reduzida, enviada à API e analisada pelo Google Gemini; o usuário confirma a sugestão antes de ver o destino. A foto não é guardada.
-
-Em desenvolvimento: cadastro de pontos por parceiros.
+- **Aviso de informação errada**: qualquer pessoa avisa, sem se identificar, que um ponto fechou, mudou de endereço ou não aceita um material.
+- **Parceiros**: mercados, farmácias, cooperativas e órgãos públicos criam conta e cadastram os próprios pontos, que só aparecem no mapa depois de aprovados.
+- **Administração**: aprovação, rejeição e desativação de pontos, tratamento dos avisos, cadastro de materiais e categorias e estatísticas de uso (buscas, fotos e taxa de acerto da IA).
+- **Dicas** de descarte consciente e **páginas institucionais**: Sobre, Política de Privacidade (LGPD) e Termos de Uso.
+- Interface acessível: navegação por teclado, foco visível, rótulos em todos os campos, áreas de toque de 44 px e suporte a leitores de tela.
 
 ## Estrutura
 
@@ -71,7 +71,7 @@ cd mobile
 npm test
 ```
 
-São 27 testes (Jest + Testing Library): cliente da API, guia (busca com espera de digitação, filtro por categoria, lista vazia, erro com "Tentar de novo") e identificação por foto (aviso de privacidade, permissão negada, redução da imagem, sugestões, confirmação e erros 400/413/429/503).
+São 30 testes (Jest + Testing Library): cliente da API (inclusive o envio da foto como arquivo), guia (busca com espera de digitação, filtro por categoria, lista vazia, erro com "Tentar de novo"), identificação por foto (aviso de privacidade, permissão negada, redução da imagem, sugestões, confirmação e erros 400/413/429/503) e tela do ponto (rotas pelo Google Maps e Waze, aviso de erro).
 
 ### Variáveis do site (`web/.env`)
 
@@ -80,6 +80,13 @@ São 27 testes (Jest + Testing Library): cliente da API, guia (busca com espera 
 | `VITE_API_URL` | Endereço da API (padrão `http://localhost:5158/v1`) |
 | `VITE_CONTATO_EMAIL` | E-mail de contato exibido em Sobre, Privacidade e Termos |
 | `VITE_NSI_CNPJ` | CNPJ do responsável pelo site |
+| `VITE_MAPTILER_CHAVE` | Chave do [MapTiler](https://cloud.maptiler.com) (plano grátis) para o fundo do mapa. Sem ela, usa os tiles do OpenStreetMap, que servem só para desenvolvimento |
+
+No app, a chave do mapa vai em `EXPO_PUBLIC_MAPTILER_CHAVE` no `mobile/.env`.
+
+### Entrar como administrador (desenvolvimento)
+
+Em desenvolvimento, a API cria o admin `admin@descartaai.local` com a senha `admin-local-123` (veja `appsettings.Development.json`). Entre em http://localhost:5173/entrar. Parceiros se cadastram em `/parceiro/cadastro`.
 
 ### Testes da API
 
@@ -88,11 +95,12 @@ cd api
 dotnet test
 ```
 
-São 56 testes, em `api/DescartaAi.Api.Tests`:
+São 72 testes, em `api/DescartaAi.Api.Tests`:
 
 - **Unidade:** validação da busca por proximidade (coordenadas e raio) e reconhecimento do formato da imagem pelo conteúdo.
 - **Identificação por foto:** com a IA substituída por um classificador falso, cobrem a ordenação por confiança, o descarte de ids inventados, os limites de 3 sugestões e 5 MB (413), arquivo que não é imagem (400), IA fora do ar (503), limite de 10 fotos por minuto (429) e a confirmação/correção.
 - **Integração:** sobem a API completa contra um PostgreSQL + PostGIS real, criado automaticamente em um contêiner descartável ([Testcontainers](https://dotnet.testcontainers.org)). Cobrem a busca sem acento e por sinônimos, a ordenação por distância, o filtro por material e raio, a regra de que pontos pendentes não são públicos e os erros 400/404.
+- **Parceiros e administração:** cadastro e login (inclusive erro sem revelar se o e-mail existe), papéis (401/403), ponto do parceiro que só vira público depois de aprovado e volta à análise ao ser editado, parceiro que não edita ponto alheio, catálogo de materiais (material em uso não é excluído), avisos de erro, busca por endereço e estatísticas.
 - **Segurança:** cabeçalhos, Swagger desligado em produção, CORS só para a origem configurada, limite de requisições (429) e curingas do LIKE escapados.
 
 Requer o Docker em execução.
@@ -105,10 +113,12 @@ npm test            # roda uma vez
 npm run test:watch  # roda a cada alteração
 ```
 
-São 50 testes ([Vitest](https://vitest.dev) + [Testing Library](https://testing-library.com)) que simulam o uso real (digitar, clicar, escolher filtros) com a API substituída por respostas controladas:
+São 63 testes ([Vitest](https://vitest.dev) + [Testing Library](https://testing-library.com)) que simulam o uso real (digitar, clicar, escolher filtros) com a API substituída por respostas controladas:
 
 - **Guia:** busca com espera de digitação, filtros gravados na URL, item aberto com instruções e link para o mapa, lista vazia e erros com "Tentar de novo".
 - **Mapa:** distâncias, filtros vindos do guia, enquadramento, seleção de ponto, localização permitida ou negada, aumento de raio e link de rota.
+- **Mapa (novos):** rota pelo Waze, busca por endereço ou CEP e aviso de informação errada.
+- **Parceiros e administração:** login, cadastro com erros por campo, áreas restritas, sessão expirada, cadastro de ponto com localização do endereço e aprovação pelo admin.
 - **Navegação e páginas institucionais:** menu, rodapé, página não encontrada e conteúdo exigido pela LGPD.
 - **Base:** formatação, cliente da API e o hook `useConsulta`, incluindo respostas que chegam fora de ordem.
 
@@ -126,6 +136,8 @@ Veja `.env.example` na raiz. Pontos principais:
 | `Swagger__Habilitado` | Expõe `/swagger` fora do ambiente de desenvolvimento (padrão: desligado) |
 | `Limite__RequisicoesPorMinuto` | Limite por IP (padrão 120); acima disso a API responde 429 |
 | `Proxy__Confiaveis__0` | IP do proxy reverso, para o limite usar o IP real do usuário |
+| `Jwt__Chave` | Chave de assinatura dos logins, com 32+ caracteres (`openssl rand -hex 32`). Obrigatória |
+| `Admin__Email`, `Admin__Senha` | Primeiro administrador, criado só se ainda não houver nenhum |
 
 ## Organização do código
 
@@ -135,8 +147,13 @@ api/DescartaAi.Api/
 ├── Dados/            DbContext, migrações e carga inicial (catálogo + pontos do OSM)
 ├── Modulos/
 │   ├── Materiais/    endpoints, serviço e DTOs do guia
-│   └── Pontos/       endpoints, serviço, DTOs e validação da busca por proximidade
-└── Infraestrutura/   segurança (CORS, limite, cabeçalhos, HTTPS) e tratamento de erros
+│   ├── Pontos/       busca por proximidade, detalhe e avisos de erro
+│   ├── Identificacoes/ identificação por foto (Gemini)
+│   ├── Localizacao/  endereço ou CEP → coordenadas (ViaCEP + Nominatim)
+│   ├── Contas/       cadastro de parceiro e login
+│   ├── Parceiros/    pontos do parceiro
+│   └── Admin/        moderação, catálogo, avisos e estatísticas
+└── Infraestrutura/   segurança (CORS, limites, cabeçalhos, HTTPS), login (JWT) e tratamento de erros
 
 api/DescartaAi.Api.Tests/
 ├── Unidade/          regras isoladas, sem banco
@@ -162,6 +179,23 @@ Base: `/v1`. Documentação interativa em `/swagger` (em desenvolvimento).
 | GET | `/materiais/{id}` | Instruções e cuidados de descarte |
 | GET | `/pontos/proximos?lat=&lng=&raio=&materialId=` | Pontos aprovados por distância (raio em metros, máx. 50 000) |
 | GET | `/pontos/{id}` | Detalhe de um ponto |
+| POST | `/pontos/{id}/reportes` | Aviso de informação errada (`motivo`, `comentario`) |
+| GET | `/localizacao?endereco=` | Endereço ou CEP → coordenadas |
+| POST | `/identificacoes` | Identificação por foto (multipart, campo `foto`) |
+| PATCH | `/identificacoes/{id}` | Confirma ou corrige o material sugerido |
+| POST | `/auth/cadastro` | Cadastro de parceiro (devolve o token) |
+| POST | `/auth/login` | Login de parceiro ou admin |
+| GET | `/auth/eu` | Dados de quem está logado |
+| GET, POST | `/parceiro/pontos` | Pontos do parceiro (lista e cadastro) |
+| PUT | `/parceiro/pontos/{id}` | Edita um ponto do parceiro (volta para análise) |
+| GET | `/admin/pontos?status=` | Pontos por situação |
+| PATCH | `/admin/pontos/{id}/status` | Aprova, rejeita ou desativa |
+| GET, PATCH | `/admin/reportes` | Avisos de erro |
+| POST, PUT, DELETE | `/admin/materiais` | Catálogo de materiais |
+| POST, PUT | `/admin/categorias` | Categorias |
+| GET | `/admin/estatisticas` | Números de uso |
+
+As rotas `/parceiro/*` e `/admin/*` exigem `Authorization: Bearer <token>`.
 
 Erros seguem o padrão RFC 7807 (`application/problem+json`).
 

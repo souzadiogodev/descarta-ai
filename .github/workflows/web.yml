@@ -32,6 +32,7 @@ jobs:
           VITE_API_URL: ${{ vars.VITE_API_URL }}
           VITE_CONTATO_EMAIL: ${{ vars.VITE_CONTATO_EMAIL }}
           VITE_NSI_CNPJ: ${{ vars.VITE_NSI_CNPJ }}
+          VITE_MAPTILER_CHAVE: ${{ vars.VITE_MAPTILER_CHAVE }}
       - uses: actions/upload-artifact@v4
         with:
           name: site
